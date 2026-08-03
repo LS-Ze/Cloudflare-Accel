@@ -1,4 +1,4 @@
-// 更新日期: 2026-06-28
+// 更新日期: 2026-07-27
 // 更新内容:
 // 1. 无论是否重定向，只要目标是 AWS S3，就自动补全 x-amz-content-sha256 和 x-amz-date
 // 2. 改进Docker镜像路径处理逻辑，支持多种格式: 如 hello-world | library/hello-world | docker.io/library/hello-world
@@ -7,6 +7,7 @@
 // 5. 支持 Git smart-http 协议代理，解决 git clone 时 GitHub 返回 dumb-http 403 错误
 // 6. 支持 GitLab 系列域名（gitlab.com 等）的 git clone 加速
 // 7. 首页新增 Git Clone 加速功能模块，方便生成加速命令
+// 8. 改进链接的拼接逻辑，兼容反向代理下的非 https 以及带有端口号的 host
 // 用户配置区域开始 =================================
 // 以下变量用于配置代理服务的白名单和安全设置，可根据需求修改。
 
@@ -276,7 +277,8 @@ const HOMEPAGE_HTML = `
 
   <script>
     // 动态获取当前域名
-    const currentDomain = window.location.hostname;
+    const currentOrigin = window.location.origin;
+    const currentHost = window.location.host;
 
     // 主题切换
     function toggleTheme() {
@@ -370,7 +372,7 @@ const HOMEPAGE_HTML = `
         githubIsGitMode = true;
         submitBtn.textContent = '获取加速命令';
         const domainPath = input.substring(8); // 去掉 https://
-        const proxyUrl = 'https://' + currentDomain + '/https://' + domainPath;
+        const proxyUrl =  currentOrigin + '/https://' + domainPath;
         githubAcceleratedUrl = 'git clone ' + proxyUrl;
         result.textContent = '加速命令: ' + githubAcceleratedUrl;
         result.classList.remove('hidden');
@@ -389,7 +391,7 @@ const HOMEPAGE_HTML = `
       githubIsGitMode = false;
       submitBtn.textContent = '获取加速链接';
       // 保持现有格式：域名/https://原始链接
-      githubAcceleratedUrl = 'https://' + currentDomain + '/https://' + input.substring(8);
+      githubAcceleratedUrl = currentOrigin + '/https://' + input.substring(8);
       result.textContent = '加速链接: ' + githubAcceleratedUrl;
       result.classList.remove('hidden');
       buttons.classList.remove('hidden');
@@ -429,7 +431,7 @@ const HOMEPAGE_HTML = `
         buttons.classList.add('hidden');
         return;
       }
-      dockerCommand = 'docker pull ' + currentDomain + '/' + input;
+      dockerCommand = 'docker pull ' + currentHost + '/' + input;
       result.textContent = '加速命令: ' + dockerCommand;
       result.classList.remove('hidden');
       buttons.classList.remove('hidden');
